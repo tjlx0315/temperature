@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>雨棱镜 - 杭州·蔚海</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background-color: #000;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* Phone frame wrapper */
+        .phone-wrapper {
+            width: 100%;
+            max-width: 414px;
+            height: 100vh;
+            max-height: 896px;
+            background-color: #f7f7f7;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+
+        @media (max-width: 450px) {
+            .phone-wrapper {
+                max-width: 100%;
+                max-height: 100vh;
+                border-radius: 0;
+            }
+        }
+
+        /* Top status bar */
+        .status-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 44px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            z-index: 1000;
+            background-color: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .status-left {
+            font-size: 15px;
+            font-weight: 600;
+            color: #000;
+            letter-spacing: -0.2px;
+        }
+
+        .dynamic-island {
+            position: absolute;
+            top: 7px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 30px;
+            background-color: #000;
+            border-radius: 20px;
+            z-index: 1001;
+        }
+
+        .status-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #000;
+        }
+
+        .location-tag {
+            font-size: 14px;
+            font-weight: 500;
+            color: #111;
+        }
+
+        /* Navigation bar */
+        .nav-bar {
+            position: absolute;
+            top: 44px;
+            left: 0;
+            width: 100%;
+            height: 44px;
+            background-color: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            border-bottom: 0.5px solid rgba(0,0,0,0.1);
+            z-index: 999;
+        }
+
+        .nav-left, .nav-right {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .nav-left svg, .nav-right svg {
+            width: 20px;
+            height: 20px;
+            fill: #000;
+        }
+
+        .nav-center {
+            flex: 1;
+            text-align: center;
+            font-size: 17px;
+            font-weight: 600;
+            color: #000;
+            letter-spacing: -0.3px;
+        }
+
+        /* Chat content background */
+        .chat-container {
+            flex: 1;
+            margin-top: 88px;
+            margin-bottom: 56px;
+            position: relative;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('input_file_0.png');
+            background-size: cover;
+            background-position: center;
+            z-index: 0;
+        }
+
+        .chat-messages {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* Message row & bubble styles */
+        .msg-row {
+            display: flex;
+            width: 100%;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .msg-row.sent {
+            justify-content: flex-end;
+        }
+
+        .msg-row.received {
+            justify-content: flex-start;
+        }
+
+        /* Avatar styles */
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .msg-content {
+            display: flex;
+            flex-direction: column;
+            max-width: 70%;
+        }
+
+        .msg-row.received .msg-content {
+            align-items: flex-start;
+        }
+
+        .msg-row.sent .msg-content {
+            align-items: flex-end;
+        }
+
+        .character-name {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 3px;
+            padding-left: 2px;
+        }
+
+        .bubble {
+            padding: 10px 14px;
+            font-size: 15px;
+            line-height: 1.4;
+            border-radius: 8px;
+            position: relative;
+            word-break: break-all;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        }
+
+        /* 玩家发送气泡改为蓝色 #88C6ED */
+        .bubble.sent {
+            background-color: #88C6ED;
+            color: #ffffff;
+            border-top-right-radius: 2px;
+        }
+
+        .bubble.received {
+            background-color: #ffffff;
+            color: #000;
+            border-top-left-radius: 2px;
+        }
+
+        /* 图片气泡样式 */
+        .bubble-img {
+            max-width: 200px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+            display: block;
+        }
+
+        /* Bottom input bar */
+        .input-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 56px;
+            background-color: #f7f7f7;
+            border-top: 0.5px solid rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            z-index: 1000;
+        }
+
+        .input-icon {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .input-icon svg {
+            width: 26px;
+            height: 26px;
+            fill: #181818;
+        }
+
+        .input-box {
+            flex: 1;
+            height: 38px;
+            background-color: #ffffff;
+            border-radius: 6px;
+            border: none;
+            padding: 0 12px;
+            font-size: 15px;
+            margin: 0 4px;
+            outline: none;
+            display: flex;
+            align-items: center;
+            color: #181818;
+        }
+
+        .input-placeholder {
+            color: #b2b2b2;
+            font-size: 15px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .real-input {
+            width: 100%;
+            height: 100%;
+            border: none;
+            outline: none;
+            font-size: 15px;
+            background: transparent;
+            color: #181818;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+            z-index: 2000;
+            display: none;
+            justify-content: center;
+            align-items: flex-end;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-card {
+            width: 100%;
+            background-color: #f9f9f9;
+            border-top-left-radius: 16px;
+            border-top-right-radius: 16px;
+            padding: 20px 16px 30px 16px;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+            animation: slideUp 0.25s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+
+        .modal-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: #111;
+        }
+
+        .modal-step {
+            font-size: 13px;
+            color: #888;
+        }
+
+        .modal-question {
+            font-size: 16px;
+            font-weight: 600;
+            color: #111;
+            margin-bottom: 18px;
+            text-align: center;
+        }
+
+        .options-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option-btn {
+            width: 100%;
+            padding: 13px 0;
+            background-color: #ffffff;
+            border: 1px solid #e5e5e5;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            color: #191919;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .option-btn:active {
+            background-color: #ececec;
+            transform: scale(0.99);
+        }
+
+        .cancel-btn {
+            margin-top: 14px;
+            background-color: transparent;
+            border: none;
+            color: #888;
+            font-size: 14px;
+            width: 100%;
+            text-align: center;
+            cursor: pointer;
+            padding: 6px 0;
+        }
+
+        .home-indicator {
+            position: absolute;
+            bottom: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 134px;
+            height: 5px;
+            background-color: #000;
+            border-radius: 3px;
+            z-index: 1001;
+        }
+
+        /* 系统消息样式（蔚海预报） */
+        .msg-row.system {
+            justify-content: center;
+        }
+        .bubble.system {
+            background-color: rgba(0,0,0,0.05);
+            color: #555;
+            font-size: 13px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            box-shadow: none;
+            max-width: 90%;
+            text-align: center;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="phone-wrapper">
+        <div class="dynamic-island"></div>
+        <div class="status-bar">
+            <div class="status-left">15:38</div>
+            <div class="status-right">
+                <span class="location-tag">杭州·蔚海</span>
+            </div>
+        </div>
+
+        <div class="nav-bar">
+            <div class="nav-left">
+                <svg viewBox="0 0 1024 1024"><path d="M720.5 889.3l-51.2 51.2L277.2 548.4c-19.5-19.5-19.5-51.2 0-70.7l392.1-392.1 51.2 51.2L347.9 513l372.6 376.3z"/></svg>
+            </div>
+            <div class="nav-center">雨棱镜</div>
+            <div class="nav-right">
+                <svg viewBox="0 0 1024 1024"><path d="M170.7 512c0 47.1 38.2 85.3 85.3 85.3s85.3-38.2 85.3-85.3-38.2-85.3-85.3-85.3-85.3 38.2-85.3 85.3zm256 0c0 47.1 38.2 85.3 85.3 85.3s85.3-38.2 85.3-85.3-38.2-85.3-85.3-85.3-85.3 38.2-85.3 85.3zm256 0c0 47.1 38.2 85.3 85.3 85.3s85.3-38.2 85.3-85.3-38.2-85.3-85.3-85.3-85.3 38.2-85.3 85.3z"/></svg>
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-bg"></div>
+            <div class="chat-messages" id="chatMessages"></div>
+        </div>
+
+        <div class="input-bar">
+            <div class="input-icon">
+                <svg viewBox="0 0 1024 1024"><path d="M512 85.3C375.4 85.3 264.5 196.2 264.5 332.8V597.2C264.5 733.8 375.4 844.7 512 844.7S759.5 733.8 759.5 597.2V332.8C759.5 196.2 648.6 85.3 512 85.3zM666 597.2C666 682 597.1 751 512 751S358 682 358 597.2V332.8C358 248 426.9 179 512 179S666 248 666 332.8V597.2zM813.1 597.2H871.7C871.7 783.1 732 935 553.8 951V1024H470.2V951C292 935 152.3 783.1 152.3 597.2H210.9C210.9 763 346 898.1 512 898.1S813.1 763 813.1 597.2z"/></svg>
+            </div>
+            <div class="input-box" id="inputContainer">
+                <span class="input-placeholder" id="openModalBtn">点击登记天气...</span>
+            </div>
+            <div class="input-icon">
+                <svg viewBox="0 0 1024 1024"><path d="M512 102.4C286.7 102.4 102.4 286.7 102.4 512s184.3 409.6 409.6 409.6 409.6-184.3 409.6-409.6S737.3 102.4 512 102.4zm0 768C329.1 870.4 179.2 720.5 179.2 537.6s149.9-332.8 332.8-332.8 332.8 149.9 332.8 332.8-149.9 332.8-332.8 332.8zM332.8 409.6c31.6 0 51.2 19.6 51.2 51.2 0 31.6-19.6 51.2-51.2 51.2s-51.2-19.6-51.2-51.2c0-31.6 19.6-51.2 51.2-51.2zm358.4 0c31.6 0 51.2 19.6 51.2 51.2 0 31.6-19.6 51.2-51.2 51.2-31.6 0-51.2-19.6-51.2-51.2 0-31.6 19.6-51.2 51.2-51.2zm-35.8 213.3c35.8 0 71.7 17.1 71.7 51.2s-35.8 51.2-71.7 51.2H368.6c-35.8 0-71.7-17.1-71.7-51.2s35.8-51.2 71.7-51.2h322.5z"/></svg>
+            </div>
+            <div class="input-icon" id="sendBtnIcon">
+                <svg viewBox="0 0 1024 1024"><path d="M512 128C299.9 128 128 299.9 128 512s171.9 384 384 384 384-171.9 384-384-171.9-384-384-384zm213.3 405.3H533.3v192h-42.6v-192h-192v-42.6h192v-192h42.6v192h192v42.6z"/></svg>
+            </div>
+        </div>
+
+        <div class="home-indicator"></div>
+
+        <div class="modal-overlay" id="modalOverlay">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <span class="modal-title" id="modalTitle">天气登记</span>
+                    <span class="modal-step" id="modalStep">1/3</span>
+                </div>
+                <div class="modal-question" id="modalQuestion">今日温度？</div>
+                <div class="options-grid" id="optionsGrid"></div>
+                <button class="cancel-btn" id="cancelBtn">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // -------------------------------------------------------------
+        // 1. 角色与台词库
+        // -------------------------------------------------------------
+        const characters = {
+            LL:  { id: 'LL',  name: 'L',   avatar: 'LL.png' },
+            WST: { id: 'WST', name: '舒桐', avatar: 'WST.png' },
+            GYZ: { id: 'GYZ', name: '遥洲', avatar: 'GYZ.png' },
+            JL:  { id: 'JL',  name: '姜姜',   avatar: 'JL.png' },
+            LD:  { id: 'LD',  name: '点',   avatar: 'LD.png' },
+            GNF: { id: 'GNF', name: '顾南风', avatar: 'GNF.png' }
+        };
+
+        // 杭州天气 -> OC台词映射
+        const hzResponses = {
+            "低温_无雨": [
+                { char: "JL", text: "哇，好天气！如果你在路上看到小猫的话，可以拍给我吗？" },
+                { char: "WST", text: "天气不错，出来走走怎么样？" }
+            ],
+            "中温_无雨": [
+                { char: "JL", text: "哇，好天气！如果你在路上看到小猫的话，可以拍给我吗？" },
+                { char: "WST", text: "天气不错，出来走走怎么样？" }
+            ],
+            "高温_无雨": [
+                { char: "JL", text: "哇，好天气！如果你在路上看到小猫的话，可以拍给我吗？" },
+                { char: "WST", text: "天气不错，出来走走怎么样？" }
+            ],
+            "低温_小雨": [
+                { char: "LL", text: "出门记得拿伞，小心淋雨。" },
+                { char: "LD", text: "喔，下雨天还是会膝盖痛吗，希望你今天一切都好。" }
+            ],
+            "中温_小雨": [
+                { char: "LL", text: "出门记得拿伞，小心淋雨。" },
+                { char: "LD", text: "喔，下雨天还是会膝盖痛吗，希望你今天一切都好。" }
+            ],
+            "高温_小雨": [
+                { char: "LL", text: "出门记得拿伞，小心淋雨。" },
+                { char: "LD", text: "喔，下雨天还是会膝盖痛吗，希望你今天一切都好。" }
+            ],
+            "低温_大雨": [
+                { char: "LL", text: "出门记得拿伞，小心淋雨。" },
+                { char: "LD", text: "喔，下雨天还是会膝盖痛吗，希望你今天一切都好。" }
+            ],
+            "中温_大雨": [
+                { char: "LL", text: "出门记得拿伞，小心淋雨。" },
+                { char: "LD", text: "喔，下雨天还是会膝盖痛吗，希望你今天一切都好。" }
+            ],
+            "高温_大雨": [
+                { char: "GYZ", text: "（看向你）有点闷热，有点喘不过气吗？要不要回室内休息一下？" },
+                { char: "GNF", text: "（皱眉读报，一言不发）……" }
+            ],
+            "梅雨": [
+                { char: "GYZ", text: "梅雨季的连续阴雨可能会让你心情不好，难受的话可以和我说，或者点份甜品，要吃蓝莓蛋糕吗？" },
+                { char: "GNF", text: "……这天气真是麻烦。" }
+            ],
+            "台风": [
+                { char: "LL", text: "（看台风路径图）无论如何，注意安全。" },
+                { char: "WST", text: "没收你的车钥匙。老老实实呆在室内吧，不然你就该上报纸了。什么你说为什么？再不回家明天头版就该叫《一市民台风天出门，成为无动力上天第一人（车）》" }
+            ],
+            "下雪": [
+                { char: "JL", text: "哦——下雪了！好漂亮！是不是可以打雪仗了！" }
+            ],
+            "大雾": [
+                { char: "LD", text: "来，拿上口罩。小心别吸入过量PM2.5，善待你的肺。" }
+            ]
+        };
+
+        // 蔚海天气 -> OC台词与图片 (x.png) 映射
+        const whResponses = {
+            "晴朗舒适": [
+                { char: "JL",  text: "（将拍立得的背带套到身上）今天要去拍照！到时候给你看！", img: "1.png" },
+                { char: "GNF", text: "（放松了眉头）难得的好天气啊。", img: "2.png" }
+            ],
+            "高温闷热": [
+                { char: "LL",  text: "（伸手扭开了空调按钮）走了，开会去，待会儿见。", img: "3.png" },
+                { char: "WST", text: "（擦汗）好热，我去冰箱里拿瓶水回来再研究资料。", img: "4.png" }
+            ],
+            "阴天微风": [
+                { char: "GYZ", text: "（端起水杯喝了一口）有点冷呢。", img: "5.png" },
+                { char: "LD",  text: "（坐在窗边戴着有线耳机听mp3）……", img: "6.png" }
+            ],
+            "降雨天气": [
+                { char: "LL",  text: "有人还要外出吗？等下我把门口的雨棚支起来。", img: "7.png" },
+                { char: "LD",  text: "果果，过来！要下雨啦。", img: "8.png" }
+            ],
+            "台风": [
+                { char: "WST", text: "（提高声音）布置下去，撤回海边巡逻的警力，全体注意安全。", img: "9.png" },
+                { char: "GYZ", text: "（无奈地笑）蔚海的台风也总是来得很猛烈，今天大概是只能居家办公了。", img: "10.png" }
+            ],
+            "寒冷湿润": [
+                { char: "JL",  text: "（套上围巾）阿嚏！好冷好冷，我们快走。", img: "11.png" },
+                { char: "GNF", text: "（用钢笔在纸上写着什么，发出沙沙的声音）……", img: "12.png" }
+            ]
+        };
+
+        // -------------------------------------------------------------
+        // 2. 蔚海天气模拟系统
+        // -------------------------------------------------------------
+        const weatherTypes = {
+            "晴朗舒适": { tempOffset: [0, 3], rain: [0, 1], humidity: [40, 65], wind: [2, 4], directions: ["东南风", "东风", "南风"] },
+            "高温闷热": { tempOffset: [2, 6], rain: [0, 5], humidity: [75, 95], wind: [1, 3], directions: ["东南风", "南风"] },
+            "阴天微风": { tempOffset: [-1, 1], rain: [0, 3], humidity: [60, 80], wind: [2, 4], directions: ["东南风", "东北风", "东风"] },
+            "降雨天气": { tempOffset: [-3, -1], rain: [5, 50], humidity: [80, 100], wind: [3, 6], directions: ["东南风", "东风"] },
+            "台风":     { tempOffset: [-5, 0], rain: [50, 200], humidity: [85, 100], wind: [7, 12], directions: ["东南风", "强东南风"] },
+            "寒冷湿润": { tempOffset: [-3, 2], rain: [0, 15], humidity: [70, 95], wind: [3, 5], directions: ["北风", "东北风"] }
+        };
+
+        const monthlyTemperature = {1:7,2:9,3:14,4:19,5:24,6:28,7:31,8:31,9:27,10:22,11:16,12:10};
+        const seasonalProbability = {
+            winter:{"寒冷湿润":50,"阴天微风":30,"降雨天气":20},
+            spring:{"晴朗舒适":40,"阴天微风":35,"降雨天气":25},
+            summer:{"高温闷热":40,"晴朗舒适":20,"降雨天气":20,"台风":10,"阴天微风":10},
+            autumn:{"晴朗舒适":55,"阴天微风":25,"降雨天气":15,"高温闷热":5}
+        };
+
+        function getSeason(month){ if(month<=2||month===12)return"winter";if(month>=3&&month<=5)return"spring";if(month>=6&&month<=9)return"summer";return"autumn";}
+        function weightedRandom(prob){let r=Math.random()*100,i=0;for(let k in prob){i+=prob[k];if(r<=i)return k;}}
+        function rand(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+
+        function generateWeather(){
+            const now=new Date(), month=now.getMonth()+1;
+            const weather=weightedRandom(seasonalProbability[getSeason(month)]);
+            const cfg=weatherTypes[weather];
+            const baseTemp=monthlyTemperature[month];
+            const temp=baseTemp + rand(cfg.tempOffset[0], cfg.tempOffset[1]);
+            const dirList = cfg.directions || ["东南风"];
+            return {
+                name: weather,
+                tempMin: temp - rand(1,3),
+                tempMax: temp + rand(1,3),
+                rainfall: rand(cfg.rain[0], cfg.rain[1]),
+                windLevel: rand(cfg.wind[0], cfg.wind[1]),
+                windDirection: dirList[Math.floor(Math.random()*dirList.length)]
+            };
+        }
+
+        // -------------------------------------------------------------
+        // 3. DOM 与交互逻辑
+        // -------------------------------------------------------------
+        const modalOverlay = document.getElementById('modalOverlay');
+        const openModalBtn = document.getElementById('openModalBtn');
+        const inputContainer = document.getElementById('inputContainer');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const modalQuestion = document.getElementById('modalQuestion');
+        const modalStep = document.getElementById('modalStep');
+        const optionsGrid = document.getElementById('optionsGrid');
+        const chatMessages = document.getElementById('chatMessages');
+        const sendBtnIcon = document.getElementById('sendBtnIcon');
+
+        let weatherRecord = { temp: '', rain: '', hasSpecial: false, specialType: '' };
+        let isSelectionCompleted = false;
+
+        openModalBtn.addEventListener('click', () => {
+            if(!isSelectionCompleted) {
+                resetRecord();
+                showStep1();
+                modalOverlay.classList.add('active');
+            }
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            modalOverlay.classList.remove('active');
+        });
+
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                modalOverlay.classList.remove('active');
+            }
+        });
+
+        function resetRecord() {
+            weatherRecord = { temp: '', rain: '', hasSpecial: false, specialType: '' };
+        }
+
+        // 步骤 1: 今日温度？
+        function showStep1() {
+            modalStep.textContent = '1/3';
+            modalQuestion.textContent = '今日温度？';
+            optionsGrid.innerHTML = '';
+            ['低', '中', '高'].forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = opt;
+                btn.onclick = () => {
+                    weatherRecord.temp = opt;
+                    showStep2();
+                };
+                optionsGrid.appendChild(btn);
+            });
+        }
+
+        // 步骤 2: 今日降雨？
+        function showStep2() {
+            modalStep.textContent = '2/3';
+            modalQuestion.textContent = '今日降雨？';
+            optionsGrid.innerHTML = '';
+            ['无', '小雨', '大雨'].forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = opt;
+                btn.onclick = () => {
+                    weatherRecord.rain = opt;
+                    showStep3();
+                };
+                optionsGrid.appendChild(btn);
+            });
+        }
+
+        // 步骤 3: 今日有无特殊天气吗？
+        function showStep3() {
+            modalStep.textContent = '3/3';
+            modalQuestion.textContent = '今日有无特殊天气吗？';
+            optionsGrid.innerHTML = '';
+            
+            const btnYes = document.createElement('button');
+            btnYes.className = 'option-btn';
+            btnYes.textContent = '有';
+            btnYes.onclick = () => {
+                weatherRecord.hasSpecial = true;
+                showStep4Special();
+            };
+
+            const btnNo = document.createElement('button');
+            btnNo.className = 'option-btn';
+            btnNo.textContent = '无';
+            btnNo.onclick = () => {
+                weatherRecord.hasSpecial = false;
+                finishSelection();
+            };
+
+            optionsGrid.appendChild(btnYes);
+            optionsGrid.appendChild(btnNo);
+        }
+
+        // 步骤 4: 特殊天气是？
+        function showStep4Special() {
+            modalStep.textContent = '补充步骤';
+            modalQuestion.textContent = '特殊天气是？';
+            optionsGrid.innerHTML = '';
+            ['梅雨', '台风', '下雪', '大雾'].forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = opt;
+                btn.onclick = () => {
+                    weatherRecord.specialType = opt;
+                    finishSelection();
+                };
+                optionsGrid.appendChild(btn);
+            });
+        }
+
+        function finishSelection() {
+            modalOverlay.classList.remove('active');
+            isSelectionCompleted = true;
+            enableChatInput();
+        }
+
+        function enableChatInput(){
+            inputContainer.innerHTML = `
+                <input id="chatInput" class="real-input" placeholder="输入消息..." />
+            `;
+            const chatInput = document.getElementById('chatInput');
+            chatInput.focus();
+
+            chatInput.addEventListener("keydown", function(e){
+                if(e.key === "Enter" && chatInput.value.trim()){
+                    handleSendMessage(chatInput.value.trim());
+                    chatInput.value = "";
+                }
+            });
+
+            sendBtnIcon.style.cursor = "pointer";
+            sendBtnIcon.onclick = () => {
+                if(chatInput.value.trim()){
+                    handleSendMessage(chatInput.value.trim());
+                    chatInput.value = "";
+                }
+            };
+        }
+
+        function handleSendMessage(playerText) {
+            // 1. 发送玩家打字内容
+            addPlayerMessage(playerText);
+
+            // 2. 角色 A 回复杭州天气
+            setTimeout(() => {
+                const key = weatherRecord.hasSpecial ? weatherRecord.specialType : `${weatherRecord.temp}_${weatherRecord.rain}`;
+                const responses = hzResponses[key] || hzResponses['中温_无雨'];
+                const lineA = responses[Math.floor(Math.random() * responses.length)];
+                addCharacterMessage(lineA.char, lineA.text);
+
+                // 3. 蔚海预报发送
+                setTimeout(() => {
+                    const wh = generateWeather();
+                    addSystemMessage(`🌊 蔚海预报<br>气温 ${wh.tempMin}°C ~ ${wh.tempMax}°C 降水 ${wh.rainfall}mm<br>${wh.windDirection}${wh.windLevel}级`);
+
+                    // 4. 筛选角色 B （蔚海天气发言，去重处理）
+                    setTimeout(() => {
+                        const whCandidates = whResponses[wh.name];
+                        if (whCandidates && whCandidates.length > 0) {
+                            // 优先过滤掉已发言的角色 A
+                            let available = whCandidates.filter(item => item.char !== lineA.char);
+                            
+                            // 如果过滤后无可用角色（特殊兜底），则从原列表中选择
+                            if (available.length === 0) {
+                                available = whCandidates;
+                            }
+
+                            // 抽取角色 B
+                            const lineB = available[Math.floor(Math.random() * available.length)];
+
+                            // 先发图片 x.png
+                            addCharacterImageMessage(lineB.char, lineB.img);
+
+                            // 紧接着发蔚海台词
+                            setTimeout(() => {
+                                addCharacterMessage(lineB.char, lineB.text);
+                            }, 500);
+                        }
+                    }, 600);
+                }, 800);
+            }, 600);
+        }
+
+        // 添加玩家消息
+        function addPlayerMessage(text) {
+            const row = document.createElement('div');
+            row.className = 'msg-row sent';
+            const content = document.createElement('div');
+            content.className = 'msg-content';
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble sent';
+            bubble.innerHTML = text.replace(/\n/g, '<br>');
+            content.appendChild(bubble);
+            row.appendChild(content);
+            chatMessages.appendChild(row);
+            scrollToBottom();
+        }
+
+        // 添加角色文本消息
+        function addCharacterMessage(charKey, text) {
+            const char = characters[charKey];
+            if (!char) return;
+
+            const row = document.createElement('div');
+            row.className = 'msg-row received';
+            
+            const img = document.createElement('img');
+            img.className = 'avatar';
+            img.src = char.avatar;
+            img.alt = char.name;
+
+            const content = document.createElement('div');
+            content.className = 'msg-content';
+
+            const nameEl = document.createElement('div');
+            nameEl.className = 'character-name';
+            nameEl.textContent = char.name;
+
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble received';
+            bubble.innerHTML = text.replace(/\n/g, '<br>');
+
+            content.appendChild(nameEl);
+            content.appendChild(bubble);
+            row.appendChild(img);
+            row.appendChild(content);
+            chatMessages.appendChild(row);
+            scrollToBottom();
+        }
+
+        // 添加角色图片消息 (x.png)
+        function addCharacterImageMessage(charKey, imgSrc) {
+            const char = characters[charKey];
+            if (!char) return;
+
+            const row = document.createElement('div');
+            row.className = 'msg-row received';
+            
+            const img = document.createElement('img');
+            img.className = 'avatar';
+            img.src = char.avatar;
+            img.alt = char.name;
+
+            const content = document.createElement('div');
+            content.className = 'msg-content';
+
+            const nameEl = document.createElement('div');
+            nameEl.className = 'character-name';
+            nameEl.textContent = char.name;
+
+            const imgBubble = document.createElement('img');
+            imgBubble.className = 'bubble-img';
+            imgBubble.src = imgSrc;
+            imgBubble.onload = () => scrollToBottom(); // 图片加载后再次自动滚动到底部
+
+            content.appendChild(nameEl);
+            content.appendChild(imgBubble);
+            row.appendChild(img);
+            row.appendChild(content);
+            chatMessages.appendChild(row);
+            scrollToBottom();
+        }
+
+        // 添加系统预报消息（蔚海预报）
+        function addSystemMessage(text) {
+            const row = document.createElement('div');
+            row.className = 'msg-row system';
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble system';
+            bubble.innerHTML = text;
+            row.appendChild(bubble);
+            chatMessages.appendChild(row);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            const container = document.querySelector('.chat-container');
+            container.scrollTop = container.scrollHeight;
+        }
+    </script>
+</body>
+</html>
